@@ -24,3 +24,6 @@ console_error_panic_hook = { workspace = true }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
+
+[build-dependencies]
+burn-import = { path = "../../crates/burn-import" }

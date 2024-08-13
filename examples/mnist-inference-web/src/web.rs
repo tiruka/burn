@@ -7,8 +7,8 @@ use js_sys::Array;
 use wasm_bindgen::prelude::*;
 
 use crate::model::Model;
+// use crate::model2::mnist::Model;
 use crate::state::{build_and_load_model, Backend};
-
 use burn::tensor::Tensor;
 
 #[cfg_attr(target_family = "wasm", wasm_bindgen(start))]
