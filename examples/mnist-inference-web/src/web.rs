@@ -6,8 +6,8 @@ use js_sys::Array;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen::prelude::*;
 
-use crate::model::Model;
-// use crate::model2::mnist::Model;
+// use crate::model::Model;
+use crate::model2::mnist::Model;
 use crate::state::{build_and_load_model, Backend};
 use burn::tensor::Tensor;
 
@@ -20,7 +20,7 @@ pub fn start() {
 /// See:[exporting-rust-struct](https://rustwasm.github.io/wasm-bindgen/contributing/design/exporting-rust-struct.html)
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
 pub struct Mnist {
-    model: Option<Model<Backend>>,
+    model: Model<Backend>,
 }
 
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
@@ -29,7 +29,9 @@ impl Mnist {
     #[cfg_attr(target_family = "wasm", wasm_bindgen(constructor))]
     pub fn new() -> Self {
         console_error_panic_hook::set_once();
-        Self { model: None }
+        Self {
+            model: Model::default(),
+        }
     }
 
     /// Returns the inference results.
@@ -45,15 +47,13 @@ impl Mnist {
     /// * [boxed-number-slices](https://rustwasm.github.io/wasm-bindgen/reference/types/boxed-number-slices.html)
     ///
     pub async fn inference(&mut self, input: &[f32]) -> Result<Array, String> {
-        if self.model.is_none() {
-            self.model = Some(build_and_load_model().await);
-        }
-
-        let model = self.model.as_ref().unwrap();
+        // if self.model.is_none() {
+        //     self.model = Some(build_and_load_model().await);
+        // }
 
         let device = Default::default();
         // Reshape from the 1D array to 3d tensor [batch, height, width]
-        let input = Tensor::<Backend, 1>::from_floats(input, &device).reshape([1, 28, 28]);
+        let input = Tensor::<Backend, 1>::from_floats(input, &device).reshape([1, 1, 28, 28]);
 
         // Normalize input: make between [0,1] and make the mean=0 and std=1
         // values mean=0.1307,std=0.3081 were copied from Pytorch Mist Example
@@ -62,7 +62,7 @@ impl Mnist {
         let input = ((input / 255) - 0.1307) / 0.3081;
 
         // Run the tensor input through the model
-        let output: Tensor<Backend, 2> = model.forward(input);
+        let output: Tensor<Backend, 2> = self.model.forward(input);
 
         // Convert the model output into probability distribution using softmax formula
         let output = burn::tensor::activation::softmax(output, 1);
