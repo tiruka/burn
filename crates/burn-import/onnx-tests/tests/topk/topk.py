@@ -20,7 +20,6 @@ class SimpleModel(nn.Module):
 
 def main() -> None:
     model = SimpleModel()
-    model.eval()
 
     # input data (batchsize: 1, feature dims: 10)
     device = torch.device("cpu")
@@ -36,7 +35,8 @@ def main() -> None:
                   dummy_input,
                   "topk.onnx",
                   export_params=True,
-                  opset_version=11,
+                  do_constant_folding=False,
+                  opset_version=16,
                   input_names=['input'],
                   output_names=['values', 'indices'],
                   dynamic_axes={'input': {0: 'batch_size'},

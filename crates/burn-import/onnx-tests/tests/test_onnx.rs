@@ -116,6 +116,7 @@ include_models!(
     sum_int,
     tanh,
     tile,
+    topk,
     transpose,
     unsqueeze,
     unsqueeze_opset11,

@@ -9,6 +9,7 @@ target
 .vs
 .fleet
 .ipynb_checkpoints/
+.venv/
 
 # Generated IR and Burn Graph from ONNX
 out
