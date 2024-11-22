@@ -57,6 +57,7 @@ pub fn dim_inference(node: &mut Node) {
         NodeType::Mul => same_as_input(node),
         NodeType::Neg => same_as_input(node),
         NodeType::Not => same_as_input(node),
+        NodeType::OneHot => one_hot_update_outputs(node),
         NodeType::Pad => same_as_input(node),
         NodeType::PRelu => same_as_input_broadcast(node),
         NodeType::Pow => same_as_input_broadcast(node),
@@ -937,4 +938,71 @@ fn set_broadcasting_output_shape(node: &mut Node) {
             *s = out_shape[0];
         }
     }
+}
+
+
+/// Updates the output shape and dtype for the OneHot operator
+/// Handles attributes such as `axis` and considers inputs of `indices`, `depth`, and `values`
+fn one_hot_update_outputs(node: &mut Node) {
+    // Extract the axis attribute; default is -1
+    let axis = node.attrs.get("axis").map(|val| val.clone().into_i64()).unwrap_or(-1);
+
+    // Validate the inputs: indices, depth, and values
+    if node.inputs.len() != 3 {
+        panic!("OneHot operator expects exactly 3 inputs: indices, depth, and values.");
+    }
+    // Get the shape of the indices input
+    let indices_shape = match &node.inputs[0].ty {
+        ArgType::Tensor(tensor) => tensor.shape.clone().unwrap_or_else(|| panic!("Indices tensor must have a defined shape.")),
+        _ => panic!("OneHot requires 'indices' input to be a tensor."),
+    };
+
+    // Determine the depth from the second input
+    let depth = match &node.inputs[1].ty {
+        ArgType::Tensor(tensor) => {
+            if tensor.dim != 0 {
+                panic!("The 'depth' input must be a scalar or rank-1 tensor with one element.");
+            }
+            // Assuming scalar depth value
+            tensor.shape.clone().unwrap_or_else(|| vec![])
+        }
+        _ => panic!("OneHot requires 'depth' input to be a tensor."),
+    };
+
+    // Extract the dtype from the values input
+    let values_input = match &node.inputs[2].ty {
+        ArgType::Tensor(tensor) => tensor,
+        _ => panic!("OneHot requires 'values' input to be a tensor."),
+    };
+
+    let elem_type = (&values_input.elem_type).clone();
+    if values_input.shape.as_ref().map_or(true, |shape| shape.len() != 1 || shape[0] != 2) {
+        panic!("The 'values' input must be a rank-1 tensor with exactly two elements.");
+    }
+
+    // Insert the new axis into the shape
+    let mut output_shape = indices_shape.clone();
+    let axis_normalized = if axis < 0 {
+        (output_shape.len() as i64 + axis + 1) as usize
+    } else {
+        axis as usize
+    };
+
+    if axis_normalized > output_shape.len() {
+        panic!(
+            "Invalid axis value for OneHot: {}. It must be in range [-{}, {}]",
+            axis,
+            output_shape.len() + 1,
+            output_shape.len()
+        );
+    }
+
+    output_shape.insert(axis_normalized, depth[0]);
+
+    // Set the output tensor type
+    node.outputs[0].ty = ArgType::Tensor(TensorType {
+        elem_type,
+        dim: output_shape.len(),
+        shape: Some(output_shape),
+    });
 }
