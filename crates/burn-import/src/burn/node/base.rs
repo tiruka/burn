@@ -14,7 +14,7 @@ use super::{
     random_uniform::RandomUniformNode, random_uniform_like::RandomUniformLikeNode,
     range::RangeNode, reshape::ReshapeNode, resize::ResizeNode, slice::SliceNode,
     squeeze::SqueezeNode, sum::SumNode, tile::TileNode, trilu::TriluNode, unary::UnaryNode,
-    unsqueeze::UnsqueezeNode,
+    unsqueeze::UnsqueezeNode, one_hot::OneHotNode
 };
 use crate::burn::{BurnImports, Scope, Type};
 use burn::backend::NdArray;
@@ -110,6 +110,7 @@ pub enum Node<PS: PrecisionSettings> {
     MaxPool1d(MaxPool1dNode),
     MaxPool2d(MaxPool2dNode),
     Mean(MeanNode),
+    OneHot(OneHotNode),
     Pad(PadNode),
     Range(RangeNode),
     Reshape(ReshapeNode),
@@ -162,6 +163,7 @@ macro_rules! match_all {
             Node::MaxPool1d(node) => $func(node),
             Node::MaxPool2d(node) => $func(node),
             Node::Mean(node) => $func(node),
+            Node::OneHot(node) => $func(node),
             Node::Pad(node) => $func(node),
             Node::Range(node) => $func(node),
             Node::Reshape(node) => $func(node),
@@ -222,6 +224,7 @@ impl<PS: PrecisionSettings> Node<PS> {
             Node::MaxPool1d(_) => "max_pool1d",
             Node::MaxPool2d(_) => "max_pool2d",
             Node::Mean(_) => "mean",
+            Node::OneHot(_) => "one_hot",
             Node::Pad(_) => "pad",
             Node::Range(_) => "range",
             Node::Reshape(_) => "reshape",
