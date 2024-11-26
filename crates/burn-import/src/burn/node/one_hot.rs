@@ -7,7 +7,7 @@ use quote::quote;
 
 #[derive(Config, Debug)]
 pub struct OneHotConfig {
-    pub depth: usize,
+    pub depth: i64,
     pub axis: isize,
     pub on_value: f32,
     pub off_value: f32,
