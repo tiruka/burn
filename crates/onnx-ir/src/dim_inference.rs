@@ -960,14 +960,28 @@ fn one_hot_update_outputs(node: &mut Node) {
     // Determine the depth from the second input
     let depth = match &node.inputs[1].ty {
         ArgType::Tensor(tensor) => {
-            if tensor.dim != 0 {
+            if tensor.dim == 0 {
+                // Scalar tensor: extract the single value and cast to i64
+                vec![node.inputs[1].value.clone().unwrap().into_i64()]
+            } else if tensor.dim == 1 {
+                // Rank 1 tensor: check it has exactly one element
+                let shape = tensor.shape.clone().unwrap();
+                if shape.len() != 1 || shape[0] != 1 {
+                    panic!("The 'depth' input must be a scalar or rank-1 tensor with exactly one element.");
+                }
+                // Extract the single value and cast to i64
+                node.inputs[1].value.clone().unwrap().into_i64s()
+            } else {
                 panic!("The 'depth' input must be a scalar or rank-1 tensor with one element.");
             }
-            // Assuming scalar depth value
-            tensor.shape.clone().unwrap_or_else(|| vec![])
         }
-        _ => panic!("OneHot requires 'depth' input to be a tensor."),
+        ArgType::Scalar(_) => {
+            // Directly use the scalar value
+            vec![node.inputs[1].value.clone().map(|val| val.into_i64()).unwrap_or(1)]
+        }
+        _ => panic!("OneHot requires 'depth' input to be a tensor or scalar."),
     };
+
 
     // Extract the dtype from the values input
     let values_input = match &node.inputs[2].ty {
@@ -997,7 +1011,7 @@ fn one_hot_update_outputs(node: &mut Node) {
         );
     }
 
-    output_shape.insert(axis_normalized, depth[0]);
+    output_shape.insert(axis_normalized, depth[0] as usize);
 
     // Set the output tensor type
     node.outputs[0].ty = ArgType::Tensor(TensorType {
