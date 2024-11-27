@@ -490,14 +490,41 @@ impl ParsedOnnxGraph {
         let indices = TensorType::from(node.inputs.first().expect("Indices input is required."));
     
         // Extract the depth from the second input
+        println!("################3");
+        dbg!(node.inputs.get(1).unwrap());
         let depth = {
             let depth_input = node.inputs.get(1).expect("Depth input is required.");
-            if let Some(Data::Int64(depth_val)) = &depth_input.value {
-                *depth_val
-            } else {
-                panic!("Depth input must be a scalar constant of type int64.");
+        
+            match &depth_input.ty {
+                ArgType::Tensor(tensor) => {
+                    if tensor.dim == 1 {
+                        // Rank 1 tensor: check it has exactly one element
+                        let shape = tensor.shape.clone().expect("Tensor shape must be defined.");
+                        if shape.len() != 1 || shape[0] != 1 {
+                            panic!("The 'depth' input must be a scalar or a rank-1 tensor with exactly one element.");
+                        }
+                        // Extract the single value and cast to i64
+                        depth_input
+                            .value
+                            .clone()
+                            .map(|val| val.into_i64s()[0])
+                            .unwrap_or(1)
+                    } else {
+                        panic!("The 'depth' input must be a scalar or a rank-1 tensor with one element.");
+                    }
+                }
+                ArgType::Scalar(_) => {
+                    // Directly use the scalar value
+                    depth_input
+                        .value
+                        .clone()
+                        .map(|val| val.into_i64())
+                        .unwrap_or(1)
+                }
+                _ => panic!("OneHot requires 'depth' input to be a tensor or scalar."),
             }
         };
+        
         // Extract the values input (third input)
         let values: Vec<f32> = node.inputs.get(2)
             .map(|input| {
