@@ -2220,18 +2220,18 @@ mod tests {
     // fn one_hot() {
     //     let device = Default::default();
     //     let model: one_hot::Model<Backend> = one_hot::Model::new(&device);
-        // let input = Tensor::<Backend, 3>::from_floats(
-        //     [[[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]],
-        //     &device,
-        // );
-        // let expected = TensorData::from([[
-        //     [1.0_f32, 2.0_f32, 3.0_f32],
-        //     [0.0_f32, 5.0_f32, 6.0_f32],
-        //     [0.0_f32, 0.0_f32, 9.0_f32],
-        // ]]);
+    // let input = Tensor::<Backend, 3>::from_floats(
+    //     [[[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]],
+    //     &device,
+    // );
+    // let expected = TensorData::from([[
+    //     [1.0_f32, 2.0_f32, 3.0_f32],
+    //     [0.0_f32, 5.0_f32, 6.0_f32],
+    //     [0.0_f32, 0.0_f32, 9.0_f32],
+    // ]]);
 
-        // let output = model.forward(input).to_data();
+    // let output = model.forward(input).to_data();
 
-        // output.assert_eq(&expected, true);
+    // output.assert_eq(&expected, true);
     // }
 }

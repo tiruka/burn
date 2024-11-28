@@ -4,7 +4,6 @@ use burn::record::PrecisionSettings;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-
 #[derive(Debug, Clone, new)]
 pub struct OneHotNode {
     pub indices: TensorType,
@@ -19,7 +18,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
         vec![Type::Tensor(self.output.clone())]
     }
 
-    fn input_types(&self) -> Vec<Type> { 
+    fn input_types(&self) -> Vec<Type> {
         vec![
             Type::Tensor(self.indices.clone()),
             self.depth.clone(),
@@ -33,7 +32,10 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
         let depth = match &self.depth {
             Type::Tensor(tensor) => scope.tensor_use_owned(tensor, node_position),
             Type::Scalar(scalar) => scalar.to_full_tensor(&[1]),
-            _ => panic!("OneHot depth needs Tensor or Scalar input, got {:?}!", self.depth),
+            _ => panic!(
+                "OneHot depth needs Tensor or Scalar input, got {:?}!",
+                self.depth
+            ),
         };
         let values = scope.tensor_use_owned(&self.values, node_position);
         let axis = self.axis;
@@ -67,7 +69,7 @@ mod tests {
     use super::*;
     use crate::burn::{
         graph::BurnGraph,
-        node::{test::assert_tokens, one_hot::OneHotNode},
+        node::{one_hot::OneHotNode, test::assert_tokens},
         TensorType,
     };
     use burn::record::FullPrecisionSettings;
@@ -83,9 +85,13 @@ mod tests {
             TensorType::new_float("output", 3),
         ));
         graph.register_input_output(
-        vec!["indices".to_string(), "depth".to_string(), "values".to_string()],
-        vec!["output".to_string()]
-    );
+            vec![
+                "indices".to_string(),
+                "depth".to_string(),
+                "values".to_string(),
+            ],
+            vec!["output".to_string()],
+        );
 
         let expected = quote! {
             use burn::tensor::Int;
@@ -138,4 +144,3 @@ mod tests {
         assert_tokens(graph.codegen(), expected);
     }
 }
-
