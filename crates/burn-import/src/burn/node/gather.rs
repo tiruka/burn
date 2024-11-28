@@ -1,5 +1,5 @@
 use super::{Node, NodeCodegen};
-use crate::burn::{TensorType, ToTokens, Type};
+use crate::burn::{ToTokens, Type};
 
 use burn::record::PrecisionSettings;
 use quote::quote;
@@ -112,7 +112,7 @@ mod tests {
         graph.register(GatherNode::new(
             Type::Tensor(TensorType::new_float("tensor1", 2)),
             Type::Tensor(TensorType::new_int("tensor2", 1)),
-            TensorType::new_float("tensor3", 2),
+            Type::Tensor(TensorType::new_float("tensor3", 2)),
             0,
         ));
 
@@ -166,7 +166,7 @@ mod tests {
         graph.register(GatherNode::new(
             Type::Tensor(TensorType::new_float("tensor1", 2)),
             Type::Tensor(TensorType::new_int("tensor2", 2)),
-            TensorType::new_float("tensor3", 3),
+            Type::Tensor(TensorType::new_float("tensor3", 3)),
             0,
         ));
 
@@ -235,7 +235,7 @@ mod tests {
         graph.register(GatherNode::new(
             Type::Shape(ShapeType::new("shape1", 3)),
             Type::Tensor(TensorType::new_int("tensor1", 1)),
-            TensorType::new_int("tensor2", 1),
+            Type::Tensor(TensorType::new_int("tensor2", 1)),
             0,
         ));
 
@@ -295,7 +295,7 @@ mod tests {
         graph.register(GatherNode::new(
             Type::Tensor(TensorType::new_float("tensor1", 2)),
             Type::Scalar(ScalarType::new("scalar1", ScalarKind::Int64)),
-            TensorType::new_float("tensor2", 1),
+            Type::Tensor(TensorType::new_float("tensor2", 1)),
             0,
         ));
 

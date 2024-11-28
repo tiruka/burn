@@ -1,7 +1,6 @@
 use super::{Node, NodeCodegen};
 use crate::burn::{Scope, TensorType, Type};
 use burn::record::PrecisionSettings;
-use candle_core::scalar;
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -20,8 +19,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
         vec![Type::Tensor(self.output.clone())]
     }
 
-    fn input_types(&self) -> Vec<Type> {
-        // https://github.com/tracel-ai/burn/pull/2119/files この辺見て修正.    
+    fn input_types(&self) -> Vec<Type> { 
         vec![
             Type::Tensor(self.indices.clone()),
             self.depth.clone(),
@@ -79,7 +77,7 @@ mod tests {
         let mut graph = BurnGraph::<FullPrecisionSettings>::default();
         graph.register(OneHotNode::new(
             TensorType::new_int("indices", 2),
-            TensorType::new_float("depth", 1),
+            Type::Tensor(TensorType::new_float("depth", 1)),
             TensorType::new_float("values", 1),
             1,
             TensorType::new_float("output", 3),
