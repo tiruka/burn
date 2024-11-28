@@ -46,7 +46,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
             #output = #output * (#on_value - #off_value) + #off_value;
             if #axis != -1 {
                 let output_shape = #output.shape();
-                let rank = output_shape.len();
+                let rank = output_shape.dims.len();
                 let axis = if #axis < 0 {
                     (rank as isize + #axis) as usize
                 } else {
@@ -126,7 +126,7 @@ mod tests {
                     output = output * (values[1] - values[0]) + values[0];
                     if 1isize != -1 {
                         let output_shape = output.shape();
-                        let rank = output_shape.len();
+                        let rank = output_shape.dims.len();
                         let axis = if 1isize < 0 {
                             (rank as isize + 1isize) as usize
                         } else {
