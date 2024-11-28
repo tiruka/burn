@@ -15,7 +15,49 @@ use crate::{
     burn::{
         graph::BurnGraph,
         node::{
-            argmax::ArgMaxNode, avg_pool1d::AvgPool1dNode, avg_pool2d::AvgPool2dNode, batch_norm::BatchNormNode, binary::BinaryNode, clip::ClipNode, concat::ConcatNode, constant::{ConstantNode, ConstantValue}, constant_of_shape::ConstantOfShapeNode, conv1d::Conv1dNode, conv2d::Conv2dNode, conv3d::Conv3dNode, conv_transpose_1d::ConvTranspose1dNode, conv_transpose_2d::ConvTranspose2dNode, conv_transpose_3d::ConvTranspose3dNode, dropout::DropoutNode, expand::{ExpandNode, ExpandShape}, gather::GatherNode, gather_elements::GatherElementsNode, global_avg_pool::GlobalAvgPoolNode, layer_norm::LayerNormNode, linear::LinearNode, mask_where::WhereNode, matmul::MatmulNode, max_pool1d::MaxPool1dNode, max_pool2d::MaxPool2dNode, one_hot::{OneHotConfig, OneHotNode}, pad::PadNode, prelu::PReluNode, random_normal::RandomNormalNode, random_normal_like::RandomNormalLikeNode, random_uniform::RandomUniformNode, random_uniform_like::RandomUniformLikeNode, range::RangeNode, reshape::ReshapeNode, resize::ResizeNode, slice::SliceNode, squeeze::SqueezeNode, sum::SumNode, tile::TileNode, trilu::TriluNode, unary::UnaryNode, unsqueeze::UnsqueezeNode
+            argmax::ArgMaxNode,
+            avg_pool1d::AvgPool1dNode,
+            avg_pool2d::AvgPool2dNode,
+            batch_norm::BatchNormNode,
+            binary::BinaryNode,
+            clip::ClipNode,
+            concat::ConcatNode,
+            constant::{ConstantNode, ConstantValue},
+            constant_of_shape::ConstantOfShapeNode,
+            conv1d::Conv1dNode,
+            conv2d::Conv2dNode,
+            conv3d::Conv3dNode,
+            conv_transpose_1d::ConvTranspose1dNode,
+            conv_transpose_2d::ConvTranspose2dNode,
+            conv_transpose_3d::ConvTranspose3dNode,
+            dropout::DropoutNode,
+            expand::{ExpandNode, ExpandShape},
+            gather::GatherNode,
+            gather_elements::GatherElementsNode,
+            global_avg_pool::GlobalAvgPoolNode,
+            layer_norm::LayerNormNode,
+            linear::LinearNode,
+            mask_where::WhereNode,
+            matmul::MatmulNode,
+            max_pool1d::MaxPool1dNode,
+            max_pool2d::MaxPool2dNode,
+            one_hot::OneHotNode,
+            pad::PadNode,
+            prelu::PReluNode,
+            random_normal::RandomNormalNode,
+            random_normal_like::RandomNormalLikeNode,
+            random_uniform::RandomUniformNode,
+            random_uniform_like::RandomUniformLikeNode,
+            range::RangeNode,
+            reshape::ReshapeNode,
+            resize::ResizeNode,
+            slice::SliceNode,
+            squeeze::SqueezeNode,
+            sum::SumNode,
+            tile::TileNode,
+            trilu::TriluNode,
+            unary::UnaryNode,
+            unsqueeze::UnsqueezeNode,
         },
         ScalarKind, ScalarType, ShapeType, TensorKind, TensorType, Type,
     },
@@ -485,90 +527,22 @@ impl ParsedOnnxGraph {
     pub(crate) fn one_hot_conversion(node: Node) -> OneHotNode {
         let output = TensorType::from(node.outputs.first().unwrap());
         // Extract the axis attribute (default: -1)
-        let axis = node.attrs.get("axis").map(|val| val.clone().into_i64()).unwrap_or(-1) as isize;
+        let axis = node
+            .attrs
+            .get("axis")
+            .map(|val| val.clone().into_i64())
+            .unwrap_or(-1) as isize;
         // Extract the indices input (first input)
         let indices = TensorType::from(node.inputs.first().expect("Indices input is required."));
-    
         // Extract the depth from the second input
-        println!("################3");
-        dbg!(node.inputs.get(1).unwrap());
-        let depth = {
-            let depth_input = node.inputs.get(1).expect("Depth input is required.");
-        
-            match &depth_input.ty {
-                ArgType::Tensor(tensor) => {
-                    if tensor.dim == 1 {
-                        // Rank 1 tensor: check it has exactly one element
-                        let shape = tensor.shape.clone().expect("Tensor shape must be defined.");
-                        if shape.len() != 1 || shape[0] != 1 {
-                            panic!("The 'depth' input must be a scalar or a rank-1 tensor with exactly one element.");
-                        }
-                        // Extract the single value and cast to i64
-                        depth_input
-                            .value
-                            .clone()
-                            .map(|val| val.into_i64s()[0])
-                            .unwrap_or(1)
-                    } else {
-                        panic!("The 'depth' input must be a scalar or a rank-1 tensor with one element.");
-                    }
-                }
-                ArgType::Scalar(_) => {
-                    // Directly use the scalar value
-                    depth_input
-                        .value
-                        .clone()
-                        .map(|val| val.into_i64())
-                        .unwrap_or(1)
-                }
-                _ => panic!("OneHot requires 'depth' input to be a tensor or scalar."),
-            }
-        };
-        
-        // Extract the values input (third input)
-        let values: Vec<f32> = node.inputs.get(2)
-            .map(|input| {
-                if let Some(data) = &input.value {
-                    data.clone().into_f32s()
-                } else {
-                    vec![]
-                }
-            }).expect("Values input is required.");
+        let depth = TensorType::from(node.inputs.get(1).expect("Depth input is required."));
 
-        // Check constraints and retrieve off_value and on_value.
-        let (off_value, on_value) = {
-            if values.len() != 2 {
-                panic!("Values input must contain exactly two elements: [off_value, on_value].");
-            }
-            (values[0], values[1])
-          
-        };
-        // Normalize the axis to a valid range
-        let normalized_axis = if axis < 0 {
-            (axis as i64) + (indices.dim as i64) + 1
-        } else {
-            axis as i64
-        };
-    
-        if !(0..=(indices.dim as i64)).contains(&normalized_axis) {
-            panic!(
-                "Invalid axis {} for OneHot. Expected in range [0, {}].",
-                normalized_axis,
-                indices.dim
-            );
-        }
-        // Create the OneHotConfig
-        let config = OneHotConfig {
-            depth,
-            axis,
-            on_value,
-            off_value,
-        };
-    
+        // Extract the values input (third input)
+        let values = TensorType::from(node.inputs.get(2).expect("Values input is required."));
         // Create and return the OneHotNode
-        OneHotNode::new(indices, output, config)
+        OneHotNode::new(indices, depth, values, axis, output)
     }
-    
+
     pub(crate) fn constant_of_shape_conversion(node: Node) -> ConstantOfShapeNode {
         // Additional types needed for ConstantOfShape:
         use crate::burn::node::constant_of_shape::ConstantValue;

@@ -56,10 +56,6 @@ def main():
         input_names=["indices", "depth", "values"],
         output_names=["output"],
         opset_version=16,
-        dynamic_axes={
-            "indices": {0: "batch_size"},
-            "output": {0: "batch_size"},
-        },
     )
 
     # Test model output
