@@ -199,10 +199,10 @@ impl TensorType {
             );
         }
         let formatted_name = Type::format_name(name.as_ref());
-        // assert_ne!(
-        //     dim, 0,
-        //     "Trying to create TensorType with dim = 0 - should be a Scalar instead!"
-        // );
+        assert_ne!(
+            dim, 0,
+            "Trying to create TensorType with dim = 0 - should be a Scalar instead!"
+        );
         Self {
             name: Ident::new(&formatted_name, Span::call_site()),
             dim,

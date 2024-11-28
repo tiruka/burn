@@ -1,6 +1,7 @@
 use super::{Node, NodeCodegen};
 use crate::burn::{Scope, TensorType, Type};
 use burn::record::PrecisionSettings;
+use candle_core::scalar;
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -8,7 +9,7 @@ use quote::quote;
 #[derive(Debug, Clone, new)]
 pub struct OneHotNode {
     pub indices: TensorType,
-    pub depth: TensorType,
+    pub depth: Type,
     pub values: TensorType,
     pub axis: isize,
     pub output: TensorType,
@@ -23,7 +24,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
         // https://github.com/tracel-ai/burn/pull/2119/files この辺見て修正.    
         vec![
             Type::Tensor(self.indices.clone()),
-            Type::Tensor(self.depth.clone()),
+            self.depth.clone(),
             Type::Tensor(self.values.clone()),
         ]
     }
@@ -31,7 +32,11 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
     fn forward(&self, scope: &mut Scope, node_position: usize) -> TokenStream {
         let indices = scope.tensor_use_owned(&self.indices, node_position);
         let output = &self.output.name;
-        let depth = scope.tensor_use_owned(&self.depth, node_position);
+        let depth = match &self.depth {
+            Type::Tensor(tensor) => scope.tensor_use_owned(tensor, node_position),
+            Type::Scalar(scalar) => scalar.to_full_tensor(&[1]),
+            _ => panic!("OneHot depth needs Tensor or Scalar input, got {:?}!", self.depth),
+        };
         let values = scope.tensor_use_owned(&self.values, node_position);
         let axis = self.axis;
         let off_value = quote! { #values[0] };

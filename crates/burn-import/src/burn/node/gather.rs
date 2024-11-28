@@ -8,13 +8,13 @@ use quote::quote;
 pub struct GatherNode {
     pub input: Type,
     pub index: Type,
-    pub output: TensorType,
+    pub output: Type,
     pub dim: usize,
 }
 
 impl<PS: PrecisionSettings> NodeCodegen<PS> for GatherNode {
     fn output_types(&self) -> Vec<Type> {
-        vec![Type::Tensor(self.output.clone())]
+        vec![self.output.clone()]
     }
 
     fn input_types(&self) -> Vec<crate::burn::Type> {
@@ -39,7 +39,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for GatherNode {
             _ => panic!("Gather needs Scalar or Shape input, got {:?}!", self.input),
         };
 
-        let output = &self.output.name;
+        let output = &self.output.name();
 
         match &self.index {
             Type::Scalar(idx_scalar) => {

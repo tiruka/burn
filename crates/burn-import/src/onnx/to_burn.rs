@@ -535,7 +535,7 @@ impl ParsedOnnxGraph {
         // Extract the indices input (first input)
         let indices = TensorType::from(node.inputs.first().expect("Indices input is required."));
         // Extract the depth from the second input
-        let depth = TensorType::from(node.inputs.get(1).expect("Depth input is required."));
+        let depth = Type::from(node.inputs.get(1).expect("Depth input is required."));
 
         // Extract the values input (third input)
         let values = TensorType::from(node.inputs.get(2).expect("Values input is required."));
@@ -686,7 +686,7 @@ impl ParsedOnnxGraph {
     fn gather_conversion(node: Node) -> GatherNode {
         let input = Type::from(node.inputs.first().unwrap());
         let index = Type::from(node.inputs.get(1).unwrap());
-        let output = TensorType::from(node.outputs.first().unwrap());
+        let output = Type::from(node.outputs.first().unwrap());
         let dim = gather_config(&node);
 
         GatherNode::new(input, index, output, dim)
