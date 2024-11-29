@@ -66,14 +66,7 @@ use crate::{
 };
 
 use super::op_configuration::{
-    argmax_config, avg_pool1d_config, avg_pool2d_config, batch_norm_config, clip_config,
-    concat_config, conv1d_config, conv2d_config, conv3d_config, conv_transpose1d_config,
-    conv_transpose2d_config, conv_transpose3d_config, dropout_config, expand_config,
-    flatten_config, gather_config, hard_sigmoid_config, layer_norm_config, leaky_relu_config,
-    linear_config, log_softmax_config, max_pool1d_config, max_pool2d_config, pad_config,
-    reduce_max_config, reduce_mean_config, reduce_min_config, reduce_prod_config,
-    reduce_sum_config, reshape_config, resize_config, shape_config, slice_config, softmax_config,
-    squeeze_config, tile_config, transpose_config, trilu_config, unsqueeze_config,
+    argmax_config, avg_pool1d_config, avg_pool2d_config, batch_norm_config, clip_config, concat_config, conv1d_config, conv2d_config, conv3d_config, conv_transpose1d_config, conv_transpose2d_config, conv_transpose3d_config, dropout_config, expand_config, flatten_config, gather_config, hard_sigmoid_config, layer_norm_config, leaky_relu_config, linear_config, log_softmax_config, max_pool1d_config, max_pool2d_config, one_hot_config, pad_config, reduce_max_config, reduce_mean_config, reduce_min_config, reduce_prod_config, reduce_sum_config, reshape_config, resize_config, shape_config, slice_config, softmax_config, squeeze_config, tile_config, transpose_config, trilu_config, unsqueeze_config
 };
 use onnx_ir::{
     convert_constant_value,
@@ -525,22 +518,10 @@ impl ParsedOnnxGraph {
     }
 
     pub(crate) fn one_hot_conversion(node: Node) -> OneHotNode {
-        let output = TensorType::from(node.outputs.first().unwrap());
-        // Extract the axis attribute (default: -1)
-        let axis = node
-            .attrs
-            .get("axis")
-            .map(|val| val.clone().into_i64())
-            .unwrap_or(-1) as isize;
-        // Extract the indices input (first input)
         let indices = TensorType::from(node.inputs.first().expect("Indices input is required."));
-        // Extract the depth from the second input
-        let depth = Type::from(node.inputs.get(1).expect("Depth input is required."));
-
-        // Extract the values input (third input)
-        let values = TensorType::from(node.inputs.get(2).expect("Values input is required."));
-        // Create and return the OneHotNode
-        OneHotNode::new(indices, depth, values, axis, output)
+        let output = TensorType::from(node.outputs.first().unwrap());
+        let config = one_hot_config(&node);
+        OneHotNode::new(indices, output, config)
     }
 
     pub(crate) fn constant_of_shape_conversion(node: Node) -> ConstantOfShapeNode {

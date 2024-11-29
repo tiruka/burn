@@ -1,16 +1,21 @@
 use super::{Node, NodeCodegen};
-use crate::burn::{Scope, TensorType, Type};
+use crate::burn::{Scope, TensorType, Type, TensorKind};
 use burn::record::PrecisionSettings;
 use proc_macro2::TokenStream;
 use quote::quote;
 
 #[derive(Debug, Clone, new)]
+pub struct OneHotConfig {
+    axis: isize,
+    depth: usize,
+    values: Vec<i64>
+}
+
+#[derive(Debug, Clone, new)]
 pub struct OneHotNode {
     pub indices: TensorType,
-    pub depth: Type,
-    pub values: TensorType,
-    pub axis: isize,
     pub output: TensorType,
+    pub config: OneHotConfig,
 }
 
 impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
@@ -19,32 +24,35 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
     }
 
     fn input_types(&self) -> Vec<Type> {
-        vec![
-            Type::Tensor(self.indices.clone()),
-            self.depth.clone(),
-            Type::Tensor(self.values.clone()),
-        ]
+        vec![Type::Tensor(self.indices.clone())]
     }
 
     fn forward(&self, scope: &mut Scope, node_position: usize) -> TokenStream {
         let indices = scope.tensor_use_owned(&self.indices, node_position);
         let output = &self.output.name;
-        let depth = match &self.depth {
-            Type::Tensor(tensor) => scope.tensor_use_owned(tensor, node_position),
-            Type::Scalar(scalar) => scalar.to_full_tensor(&[1]),
-            _ => panic!(
-                "OneHot depth needs Tensor or Scalar input, got {:?}!",
-                self.depth
-            ),
+        let depth = &self.config.depth;
+        let values = &self.config.values;
+        let off_value = values[0];
+        let on_value = values[1];
+        let axis = self.config.axis;
+        let output_expr = match &self.indices.kind {
+            TensorKind::Int => {
+                // Handle Int indices: directly use `indices.one_hot(depth)`
+                quote! {
+                    let mut #output = #indices.one_hot(#depth);
+                }
+            }
+            TensorKind::Float => {
+                // Handle Float indices: create a one-hot tensor manually
+                quote! {
+                    let mut #output = Tensor::<_, 1>::one_hot(#depth, #indices.shape()[0], &device);
+                }
+            }
+            _ => panic!("Unsupported tensor type for indices: {:?}", self.indices),
         };
-        let values = scope.tensor_use_owned(&self.values, node_position);
-        let axis = self.axis;
-        let off_value = quote! { #values[0] };
-        let on_value = quote! { #values[1] };
-        quote! {
-            let mut #output = #indices.one_hot(#depth);
-            #output = #output * (#on_value - #off_value) + #off_value;
-            if #axis != -1 {
+    
+        let permute_expr = if axis != -1 {
+            quote! {
                 let output_shape = #output.shape();
                 let rank = output_shape.dims.len();
                 let axis = if #axis < 0 {
@@ -56,6 +64,14 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
                 permutation.insert(axis, rank);
                 #output = #output.permute(permutation);
             }
+        } else {
+            quote! {}
+        };
+    
+        quote! {
+            #output_expr
+            #output = #output * (#on_value - #off_value) + #off_value;
+            #permute_expr
         }
     }
 
@@ -77,19 +93,14 @@ mod tests {
     #[test]
     fn test_codegen_one_hot() {
         let mut graph = BurnGraph::<FullPrecisionSettings>::default();
+        let config = OneHotConfig::new(1, 1, vec![1, 1]);
         graph.register(OneHotNode::new(
             TensorType::new_int("indices", 2),
-            Type::Tensor(TensorType::new_float("depth", 1)),
-            TensorType::new_float("values", 1),
-            1,
             TensorType::new_float("output", 3),
+            config,
         ));
         graph.register_input_output(
-            vec![
-                "indices".to_string(),
-                "depth".to_string(),
-                "values".to_string(),
-            ],
+            vec!["indices".to_string()],
             vec!["output".to_string()],
         );
 
@@ -116,26 +127,19 @@ mod tests {
                 }
 
                 #[allow(clippy::let_and_return, clippy::approx_constant)]
-                pub fn forward(
-                    &self,
-                    indices: Tensor<B, 2, Int>,
-                    depth: Tensor<B, 1>,
-                    values: Tensor<B, 1>,
-                ) -> Tensor<B, 3> {
-                    let mut output = indices.one_hot(depth);
-                    output = output * (values[1] - values[0]) + values[0];
-                    if 1isize != -1 {
-                        let output_shape = output.shape();
-                        let rank = output_shape.dims.len();
-                        let axis = if 1isize < 0 {
-                            (rank as isize + 1isize) as usize
-                        } else {
-                            1isize as usize
-                        };
-                        let mut permutation: Vec<usize> = (0..rank).collect();
-                        permutation.insert(axis, rank);
-                        output = output.permute(permutation);
-                    }
+                pub fn forward(&self, indices: Tensor<B, 2, Int>) -> Tensor<B, 3> {
+                    let mut output = indices.one_hot(1usize);
+                    output = output * (1i64 - 1i64) + 1i64;
+                    let output_shape = output.shape();
+                    let rank = output_shape.dims.len();
+                    let axis = if 1isize < 0 {
+                        (rank as isize + 1isize) as usize
+                    } else {
+                        1isize as usize
+                    };
+                    let mut permutation: Vec<usize> = (0..rank).collect();
+                    permutation.insert(axis, rank);
+                    output = output.permute(permutation);
                     output
                 }
             }
