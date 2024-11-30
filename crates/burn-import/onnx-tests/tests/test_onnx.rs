@@ -79,6 +79,7 @@ include_models!(
     mul,
     neg,
     not,
+    one_hot,
     pad,
     pow,
     pow_int,
@@ -2213,5 +2214,24 @@ mod tests {
         assert!(f_output.equal(f_expected).all().into_scalar());
         assert!(i_output.equal(i_expected).all().into_scalar());
         assert!(b_output.equal(b_expected).all().into_scalar());
+    }
+
+    #[test]
+    fn one_hot() {
+        let device = Default::default();
+        let model: one_hot::Model<Backend> = one_hot::Model::new(&device);
+        let input = Tensor::<Backend, 1, Int>::from_ints(
+            [[0, 2, 1, 4]],
+            &device,
+        );
+        let expected = TensorData::from([[
+            [1.0_f32, 2.0_f32, 3.0_f32],
+            [0.0_f32, 5.0_f32, 6.0_f32],
+            [0.0_f32, 0.0_f32, 9.0_f32],
+        ]]);
+
+        let output = model.forward(input).to_data();
+
+        output.assert_eq(&expected, true);
     }
 }
