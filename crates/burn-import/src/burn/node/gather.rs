@@ -1,5 +1,5 @@
 use super::{Node, NodeCodegen};
-use crate::burn::{ToTokens, Type};
+use crate::burn::{TensorType, ToTokens, Type};
 
 use burn::record::PrecisionSettings;
 use quote::quote;
@@ -8,13 +8,13 @@ use quote::quote;
 pub struct GatherNode {
     pub input: Type,
     pub index: Type,
-    pub output: Type,
+    pub output: TensorType,
     pub dim: usize,
 }
 
 impl<PS: PrecisionSettings> NodeCodegen<PS> for GatherNode {
     fn output_types(&self) -> Vec<Type> {
-        vec![self.output.clone()]
+        vec![Type::Tensor(self.output.clone())]
     }
 
     fn input_types(&self) -> Vec<crate::burn::Type> {
@@ -39,7 +39,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for GatherNode {
             _ => panic!("Gather needs Scalar or Shape input, got {:?}!", self.input),
         };
 
-        let output = &self.output.name();
+        let output = &self.output.name;
 
         match &self.index {
             Type::Scalar(idx_scalar) => {
@@ -112,7 +112,7 @@ mod tests {
         graph.register(GatherNode::new(
             Type::Tensor(TensorType::new_float("tensor1", 2)),
             Type::Tensor(TensorType::new_int("tensor2", 1)),
-            Type::Tensor(TensorType::new_float("tensor3", 2)),
+            TensorType::new_float("tensor3", 2),
             0,
         ));
 
@@ -166,7 +166,7 @@ mod tests {
         graph.register(GatherNode::new(
             Type::Tensor(TensorType::new_float("tensor1", 2)),
             Type::Tensor(TensorType::new_int("tensor2", 2)),
-            Type::Tensor(TensorType::new_float("tensor3", 3)),
+            TensorType::new_float("tensor3", 3),
             0,
         ));
 
@@ -235,7 +235,7 @@ mod tests {
         graph.register(GatherNode::new(
             Type::Shape(ShapeType::new("shape1", 3)),
             Type::Tensor(TensorType::new_int("tensor1", 1)),
-            Type::Tensor(TensorType::new_int("tensor2", 1)),
+            TensorType::new_int("tensor2", 1),
             0,
         ));
 
@@ -295,7 +295,7 @@ mod tests {
         graph.register(GatherNode::new(
             Type::Tensor(TensorType::new_float("tensor1", 2)),
             Type::Scalar(ScalarType::new("scalar1", ScalarKind::Int64)),
-            Type::Tensor(TensorType::new_float("tensor2", 1)),
+            TensorType::new_float("tensor2", 1),
             0,
         ));
 

@@ -957,4 +957,6 @@ fn one_hot_update_outputs(node: &mut Node) {
         shape: indices_type.shape.clone(),
         elem_type: values_type.elem_type.clone(),
     });
+        // たぶん、ここが違う。shpaeが違うのかな？
+    // あと、valuesも生成されたコードではfloatとintでコンフリクトしている。修正する？
 }
