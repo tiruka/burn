@@ -8,7 +8,8 @@ use quote::quote;
 pub struct OneHotConfig {
     axis: isize,
     depth: usize,
-    values: Vec<i64>
+    off_value: i64,
+    on_value: i64
 }
 
 #[derive(Debug, Clone, new)]
@@ -31,9 +32,8 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for OneHotNode {
         let indices = scope.tensor_use_owned(&self.indices, node_position);
         let output = &self.output.name;
         let depth = &self.config.depth;
-        let values = &self.config.values;
-        let off_value = values[0];
-        let on_value = values[1];
+        let off_value = &self.config.off_value;
+        let on_value = &self.config.on_value;
         let axis = self.config.axis;
         let output_expr = match &self.indices.kind {
             TensorKind::Int => {
@@ -93,10 +93,10 @@ mod tests {
     #[test]
     fn test_codegen_one_hot() {
         let mut graph = BurnGraph::<FullPrecisionSettings>::default();
-        let config = OneHotConfig::new(1, 1, vec![1, 1]);
+        let config = OneHotConfig::new(1, 1, 0, 1);
         graph.register(OneHotNode::new(
             TensorType::new_int("indices", 2),
-            TensorType::new_float("output", 3),
+            TensorType::new_int("output", 3),
             config,
         ));
         graph.register_input_output(
@@ -127,9 +127,9 @@ mod tests {
                 }
 
                 #[allow(clippy::let_and_return, clippy::approx_constant)]
-                pub fn forward(&self, indices: Tensor<B, 2, Int>) -> Tensor<B, 3> {
+                pub fn forward(&self, indices: Tensor<B, 2, Int>) -> Tensor<B, 3, Int> {
                     let mut output = indices.one_hot(1usize);
-                    output = output * (1i64 - 1i64) + 1i64;
+                    output = output * (1i64 - 0i64) + 0i64;
                     let output_shape = output.shape();
                     let rank = output_shape.dims.len();
                     let axis = if 1isize < 0 {

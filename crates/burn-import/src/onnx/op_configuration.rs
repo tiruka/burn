@@ -930,7 +930,7 @@ pub fn one_hot_config(node: &Node) -> OneHotConfig {
         })
         .expect("OneHotConfig: Values input must be a 1D tensor of integers.");
 
-    OneHotConfig::new(axis, depth, values)
+    OneHotConfig::new(axis, depth, values[0], values[1])
 }
 
 /// Create a PadConfig from the attributes of the node

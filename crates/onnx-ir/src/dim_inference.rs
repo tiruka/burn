@@ -951,11 +951,10 @@ fn one_hot_update_outputs(node: &mut Node) {
         _ => panic!("Expected the second input to be a Tensor type."),
     };
 
-    // Create the new output type
-    let mut output_tensor = indices_type.clone();
-    output_tensor.dim += 1; // Increment the rank by 1
-    output_tensor.elem_type = values_type.elem_type; // Match the type of `values`
-
     // Assign the new type to the output
-    node.outputs[0].ty = ArgType::Tensor(output_tensor);
+    node.outputs[0].ty = ArgType::Tensor(TensorType {
+        dim: indices_type.dim + 1,
+        shape: indices_type.shape.clone(),
+        elem_type: values_type.elem_type.clone(),
+    });
 }
