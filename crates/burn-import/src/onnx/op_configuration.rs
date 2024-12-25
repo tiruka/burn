@@ -9,7 +9,7 @@ use burn::nn::{
 };
 
 use crate::burn::node::{
-    expand::ExpandShape, pad::PadConfig, tile::TileConfig, trilu::TriluConfig,
+    expand::ExpandShape, one_hot::OneHotConfig, pad::PadConfig, tile::TileConfig, trilu::TriluConfig
 };
 use onnx_ir::ir::{ArgType, AttributeValue, Data, ElementType, Node};
 
@@ -917,6 +917,32 @@ pub fn trilu_config(node: &Node) -> TriluConfig {
         }
     }
     TriluConfig::new(upper, diagonal)
+}
+
+pub fn one_hot_config(node: &Node) -> OneHotConfig {
+    let axis = node
+        .attrs
+        .get("axis")
+        .map(|val| val.clone().into_i64())
+        .unwrap_or(-1) as isize;
+    // Extract the depth from the second input
+    let depth = node.inputs.get(1)
+        .and_then(|input| match &input.value {
+            Some(Data::Int64(value)) => Some(*value as usize),
+            Some(Data::Int64s(values)) => values.first().copied().map(|v| v as usize),
+            _ => Some(1),
+        })
+        .expect("OneHotConfig: Depth input must be an integer or a 1D tensor of integers.");
+
+    // Extract the values input (third input)
+    let values = node.inputs.get(2)
+        .and_then(|input| match &input.value {
+            Some(Data::Int64s(values)) => Some(values.clone()),
+            _ => Some(vec![0, 0]),
+        })
+        .expect("OneHotConfig: Values input must be a 1D tensor of integers.");
+
+    OneHotConfig::new(axis, depth, values[0], values[1])
 }
 
 /// Create a PadConfig from the attributes of the node

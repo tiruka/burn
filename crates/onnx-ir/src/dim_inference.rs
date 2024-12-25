@@ -57,6 +57,7 @@ pub fn dim_inference(node: &mut Node) {
         NodeType::Mul => same_as_input(node),
         NodeType::Neg => same_as_input(node),
         NodeType::Not => same_as_input(node),
+        NodeType::OneHot => one_hot_update_outputs(node),
         NodeType::Pad => same_as_input(node),
         NodeType::PRelu => same_as_input_broadcast(node),
         NodeType::Pow => same_as_input_broadcast(node),
@@ -937,4 +938,25 @@ fn set_broadcasting_output_shape(node: &mut Node) {
             *s = out_shape[0];
         }
     }
+}
+
+fn one_hot_update_outputs(node: &mut Node) {
+    let indices_type = match &node.inputs[0].ty {
+        ArgType::Tensor(tensor) => tensor.clone(),
+        _ => panic!("Expected the first input to be a Tensor type."),
+    };
+
+    let values_type = match &node.inputs[2].ty {
+        ArgType::Tensor(tensor) => tensor.clone(),
+        _ => panic!("Expected the second input to be a Tensor type."),
+    };
+
+    // Assign the new type to the output
+    node.outputs[0].ty = ArgType::Tensor(TensorType {
+        dim: indices_type.dim + 1,
+        shape: indices_type.shape.clone(),
+        elem_type: values_type.elem_type.clone(),
+    });
+        // たぶん、ここが違う。shpaeが違うのかな？
+    // あと、valuesも生成されたコードではfloatとintでコンフリクトしている。修正する？
 }
