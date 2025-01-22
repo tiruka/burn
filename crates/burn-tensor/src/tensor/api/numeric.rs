@@ -2051,7 +2051,6 @@ where
     /// }
     /// ```
     pub fn one_hot<const D2: usize>(self, num_classes: usize) -> Tensor<B, D2, K> {
-        check!(TensorCheck::one_hot_tensor(self.clone(), num_classes));
         self.one_hot_fill(num_classes, 1.0, 0.0, -1)
     }
 
